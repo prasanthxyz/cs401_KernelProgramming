@@ -1,0 +1,33 @@
+What I understood from the assignment about kernel functionality:
+
+fs/open.c:
+	This file handles the file opening.
+	In the function                             do_dentry_open(struct file *f, int (*open)(struct inode *, struct file *), const struct cred *cred),
+	a data structure for a file file_operations was seen. It was defined in
+	file "include/linux/fs.h",
+
+include/linux/fs.h:
+   "struct file_operations" was seen.
+   inside it, the function              *read_iter              was seen declared.
+   this was referenced in "fs/read_write.c"
+
+fs/read_write.c:
+	a file_operations structure object            "generic_ro_fops"          was declared,
+	with        ".read_iter = generic_file_read_iter"
+	This was seen defined in "mm/filemap.c"
+
+mm/filemap.c:
+	The function           generic_file_read_iter(struct kiocb *iocb, struct iov_iter *iter)         is defined here.
+	This function calls          "do_generic_file_read"             function in the same file.
+
+	static ssize_t do_generic_file_read(struct file *filp, loff_t *ppos, struct iov_iter *iter, ssize_t written) FUNCTION:
+		This is the function where page caching is handled. Inside it, the condition was seen if(!page) denoting a PAGE MISS.
+
+=======================================================================================
+		I put an else clause to that if (TO DENOTE A CACHE HIT) and placed the hook in it. 
+	The function was declared and exported outside, and was called (IF NOT NULL) inside this else clause.
+
+	The loadable kernel module creates a function of the same prototype, and assigns the hook to this function making it NOT NULL.
+	Meaning it'll be called only from the time the module is loaded.
+
+	While unloading the module, the hook is set to NULL preventing a function call henceforth.

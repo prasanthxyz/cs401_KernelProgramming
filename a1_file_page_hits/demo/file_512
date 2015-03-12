@@ -1,0 +1,16 @@
+Roll Number: 143050059
+Name : Prasanth P
+
+--- SETTING UP THE VM ---
+
+1. Downloaded the latest version of virtualbox for Ubuntu as a debian package and installed it.
+
+2. A virtual machine was created, with a vdi-image as hard-disk. Dynamic partition was used with a maximum size of 30 GB.
+
+3. Downloaded Lubuntu 14.10 ISO image, and installed it in the virtual machine.
+
+4. Inside the virtual machine lubuntu os, the package 'virtualbox-guest-dkms' to correct the screen size.
+
+
+--- COMPILING THE KERNEL ---
+The f

@@ -1,0 +1,5 @@
+1. The experiment is given in "Demo.txt".
+2. The 512 byte file to be read: file_512
+3. Program to find its inode: findInode.c
+4. Program that reads it to do the test: read.c
+

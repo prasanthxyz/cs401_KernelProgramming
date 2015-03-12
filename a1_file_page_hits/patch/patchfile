@@ -1,0 +1,27 @@
+diff -uNr linux.vanilla/mm/filemap.c linux-3.18.1/mm/filemap.c
+--- linux.vanilla/mm/filemap.c	2014-12-16 23:09:45.000000000 +0530
++++ linux-3.18.1/mm/filemap.c	2015-01-17 11:30:09.331519000 +0530
+@@ -1464,6 +1464,12 @@
+  * This is really ugly. But the goto's actually try to clarify some
+  * of the logic when it comes to error handling etc.
+  */
++
++
++//pp
++void (*record_file_hit)(unsigned long) = NULL;
++EXPORT_SYMBOL(record_file_hit);
++
+ static ssize_t do_generic_file_read(struct file *filp, loff_t *ppos,
+ 		struct iov_iter *iter, ssize_t written)
+ {
+@@ -1499,6 +1505,10 @@
+ 			page = find_get_page(mapping, index);
+ 			if (unlikely(page == NULL))
+ 				goto no_cached_page;
++		} else {
++			//pp
++			if(record_file_hit != NULL)
++				record_file_hit(inode->i_ino);
+ 		}
+ 		if (PageReadahead(page)) {
+ 			page_cache_async_readahead(mapping,

@@ -1,0 +1,11 @@
+	I created a 512B file, and two C programs - to find its inode, and to read it character by character using "open" and "read" system calls.
+
+1. File inode was found to be 1087894 (using findInode program)
+2. The module was inserted
+3. File "file_512" was read character by character
+4. The module was removed (which prints the hit-log into syslog)
+-----------------------------------------------------------------------------
+5. By checking the syslog output (with grep 1087894), it was seen that there were 512 hits, when the program said there were a total of 513 reads. Therefore, there was 1 miss and 512 hits, denoting the entire file was cached after first miss.
+6. Did steps 2 to 5 again - now the number of hits was seen to be 513.
+	That is, since the entire file was in cache, all 513 reads are hits.
+-----------------------------------------------------------------------------

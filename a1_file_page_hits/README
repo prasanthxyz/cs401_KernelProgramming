@@ -1,0 +1,9 @@
+1. The kernel modification patchfile, and INSTRUCTIONS to apply patch are in "patch" directory.
+
+2. The code file of the module "assignment.c", and a Makefile is in "lkm" directory. cd to lkm, and simply type "make" to compile the module.
+
+3. The understanding of the kernel functionality is given as "Algorithm.txt" in this directory.
+
+4. Demonstration of working is given in "Demo.txt" inside "demo" directory.
+
+5. Plotted graphs and logs are given in "graphs_logs" directory. Please read the README in that directory for further information.
