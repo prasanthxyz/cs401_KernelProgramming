@@ -1,0 +1,14 @@
+INSTRUCTIONS:
+
+To create the patch:
+     cd to the directory with 'linux.vanilla' and 'linux.modified'
+
+     $ diff -uNr linux.vanilla linux.modified > patchfile
+
+
+To apply the patch:
+	 Copy the patchfile to the PARENT directory of a freshly extracted linux-3.18.1.tar.xz
+	 (That is, right now you should have "linux-3.18.1"  and the  "patchfile"  in the same folder.
+	 cd to the "linux-3.18.1" folder using terminal
+
+     $ patch -p1 < ../patchfile
