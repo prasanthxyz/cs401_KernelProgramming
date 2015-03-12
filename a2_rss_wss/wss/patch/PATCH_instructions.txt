@@ -1,0 +1,8 @@
+INSTRUCTIONS:
+
+To apply the patch:
+	1. Copy the patchfile to the PARENT directory of a freshly extracted linux-3.18.1.tar.xz
+	(That is, right now you should have the kernel source DIRECTORY      <linux-3.18.1 folder>      and my    <patchfile>     in the same folder.
+	2. Go into the "linux-3.18.1" folder using terminal:
+        cd linux-3.18.1
+	3. Apply the patch using the command "patch -p1 < ../patchfile" .

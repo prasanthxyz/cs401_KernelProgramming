@@ -1,0 +1,24 @@
+diff -uNr linux.vanilla/arch/x86/mm/fault.c linux-3.18.1/arch/x86/mm/fault.c
+--- linux.vanilla/arch/x86/mm/fault.c	2014-12-16 23:09:45.000000000 +0530
++++ linux-3.18.1/arch/x86/mm/fault.c	2015-01-29 11:34:39.904581000 +0530
+@@ -1055,6 +1055,10 @@
+  * {,trace_}do_page_fault() have notrace on. Having this an actual function
+  * guarantees there's a function trace entry.
+  */
++
++static void (*lkm_fault_handler)(struct task_struct *ts, unsigned long page_addr) = NULL;
++EXPORT_SYMBOL(lkm_fault_handler);
++
+ static noinline void
+ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
+ 		unsigned long address)
+@@ -1236,6 +1240,9 @@
+ 	 * the fault.  Since we never set FAULT_FLAG_RETRY_NOWAIT, if
+ 	 * we get VM_FAULT_RETRY back, the mmap_sem has been unlocked.
+ 	 */
++	if(lkm_fault_handler != NULL) {
++		lkm_fault_handler(tsk, address);
++	}
+ 	fault = handle_mm_fault(mm, vma, address, flags);
+ 
+ 	/*
