@@ -1,0 +1,109 @@
+diff -uNr linux.vanilla/kernel/sched/core.c linux-3.18.1/kernel/sched/core.c
+--- linux.vanilla/kernel/sched/core.c	2014-12-16 23:09:45.000000000 +0530
++++ linux-3.18.1/kernel/sched/core.c	2015-03-28 05:53:37.082505810 +0530
+@@ -1148,6 +1148,12 @@
+ 	return ret;
+ }
+ 
++
++//PP: hook for counting task migrations
++static void (*hook_migration)(void);
++EXPORT_SYMBOL(hook_migration);
++
++
+ /*
+  * Cross migrate two tasks
+  */
+@@ -1182,6 +1188,10 @@
+ 	trace_sched_swap_numa(cur, arg.src_cpu, p, arg.dst_cpu);
+ 	ret = stop_two_cpus(arg.dst_cpu, arg.src_cpu, migrate_swap_stop, &arg);
+ 
++    //PP: hook for migration
++    if(hook_migration != NULL)
++        hook_migration();
++
+ out:
+ 	return ret;
+ }
+@@ -1718,6 +1728,9 @@
+ 
+ 	cpu = select_task_rq(p, p->wake_cpu, SD_BALANCE_WAKE, wake_flags);
+ 	if (task_cpu(p) != cpu) {
++        //PP: hook for migration
++        if(hook_migration != NULL)
++            hook_migration();
+ 		wake_flags |= WF_MIGRATED;
+ 		set_task_cpu(p, cpu);
+ 	}
+@@ -2392,6 +2405,13 @@
+ 	return sum;
+ }
+ 
++//PP: function to return the run queue length of a cpu (argument)
++unsigned long run_q_len(unsigned long cpu)
++{
++    return cpu_rq(cpu)->nr_running;
++}
++EXPORT_SYMBOL(run_q_len);
++
+ /*
+  * Check if only the current task is running on the cpu.
+  */
+@@ -2414,6 +2434,8 @@
+ 
+ 	return sum;
+ }
++/* PP: Exporting nr_context_switches to get total number of context switches yet */
++EXPORT_SYMBOL(nr_context_switches);
+ 
+ unsigned long nr_iowait(void)
+ {
+@@ -2762,6 +2784,11 @@
+  *          - return from syscall or exception to user-space
+  *          - return from interrupt-handler to user-space
+  */
++
++//PP: hook1
++static void (*hook_log_context_switch)(void);
++EXPORT_SYMBOL(hook_log_context_switch);
++
+ static void __sched __schedule(void)
+ {
+ 	struct task_struct *prev, *next;
+@@ -2826,6 +2853,8 @@
+ 		rq->curr = next;
+ 		++*switch_count;
+ 
++        if (hook_log_context_switch != NULL)
++            hook_log_context_switch();
+ 		context_switch(rq, prev, next); /* unlocks the rq */
+ 		/*
+ 		 * The context switch have flipped the stack from under us
+@@ -4791,6 +4820,9 @@
+ 	if (task_on_rq_queued(p))
+ 		rq = move_queued_task(p, dest_cpu);
+ done:
++    //PP: hook for migration
++    if(hook_migration != NULL)
++        hook_migration();
+ 	ret = 1;
+ fail:
+ 	raw_spin_unlock(&rq->lock);
+@@ -4814,6 +4846,9 @@
+ 	/* TODO: This is not properly updating schedstats */
+ 
+ 	trace_sched_move_numa(p, curr_cpu, target_cpu);
++    //PP: hook for migration
++    if(hook_migration != NULL)
++        hook_migration();
+ 	return stop_one_cpu(curr_cpu, migration_cpu_stop, &arg);
+ }
+ 
+@@ -4920,6 +4955,7 @@
+ 	.sched_class = &fake_sched_class,
+ };
+ 
++
+ /*
+  * Migrate all tasks from the rq, sleeping tasks will be migrated by
+  * try_to_wake_up()->select_task_rq().
