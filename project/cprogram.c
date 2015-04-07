@@ -1,11 +1,17 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "pbarrier.h"
 
-int main()
+int main(int argc, char *argv[])
 {
     int opn, arg, temp;
-    scanf(" %d %d", &opn, &arg);
-  //  temp = syscall(322, opn, arg);
+    if(argc != 3) {
+        printf("Enter operation and argument\n");
+        scanf(" %d %d", &opn, &arg);
+    } else {
+        opn = atoi(argv[1]);
+        arg = atoi(argv[2]);
+    }
     temp = pbarrier(opn, arg);
     printf("%d\n", temp);
     return 0;

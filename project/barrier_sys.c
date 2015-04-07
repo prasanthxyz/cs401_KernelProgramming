@@ -9,6 +9,8 @@ extern long (*pbarrier)(int, int, int);
 
 long pbarrierfn(int nproc, int operation, int arg)
 {
+    if(operation != 1)
+        printk("%d\t%d\n", operation, arg);
     if(operation == 0) {
         return nproc-1;
     } else if (operation == 1) {
