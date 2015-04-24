@@ -1,6 +1,8 @@
-obj-m += barrier_sys.o
+#obj-m += barrier_sys.o
+obj-m += ll_ll.o
 
-all: cprogram setnproc tester
+#all: cprogram setnproc tester
+all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 
 cprogram: cprogram.c pbarrier.h
