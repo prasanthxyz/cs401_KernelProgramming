@@ -18,25 +18,60 @@ struct tsknode {
 
 struct groupnode {
     int gid;
+    int nproc;
     struct tsknode tsks;
     struct list_head list;
 }groups;
 
-/*
-struct node {
-    char data;
-    struct list_head list;
-}start;
-*/
-
-static struct groupnode *insertGroup(int gid)
+static struct groupnode *getGroup(int gid)
 {
     struct groupnode *tmp;
+
+    list_for_each_entry(tmp, &groups.list, list) {
+        if(tmp->gid == gid) {
+            return tmp;
+        }
+    }
+    return NULL;
+}
+
+static struct groupnode *createGroup(int gid, int nproc)
+{
+    struct groupnode *tmp;
+
+    if(getGroup(gid))
+        return NULL;
+
     tmp = (struct groupnode *)kmalloc(sizeof(struct groupnode),GFP_KERNEL);
-    INIT_LIST_HEAD(&(tmp->tsks.list));
     tmp->gid = gid;
+    tmp->nproc = nproc;
+    INIT_LIST_HEAD(&(tmp->tsks.list));
     list_add_tail(&(tmp->list), &(groups.list));
+
     return tmp;
+}
+
+static void freeGroup(int gid)
+{
+    struct list_head *pos, *q;
+    struct groupnode *tmp;
+
+    list_for_each_safe(pos, q, &groups.list) {
+        tmp = list_entry(pos, struct groupnode, list);
+        if(tmp->gid == gid) {
+            struct list_head *pos2, *q2;
+            struct tsknode *tmp2;
+
+            list_for_each_safe(pos2, q2, &(tmp->tsks.list)) {
+                tmp2 = list_entry(pos2, struct tsknode, list);
+                list_del(pos2);
+                kfree(tmp2);
+            }
+            list_del(pos);
+            kfree(tmp);
+            break;
+        }
+    }
 }
 
 static void printGroups(void)
@@ -44,30 +79,31 @@ static void printGroups(void)
     struct groupnode *tmp;
     struct tsknode *tmptsk;
     list_for_each_entry(tmp, &groups.list, list) {
-        printk("%d:", tmp->gid);
+        printk("%d(%d): ", tmp->gid, tmp->nproc);
         list_for_each_entry(tmptsk, &tmp->tsks.list, list) {
-            printk("%d ", tmptsk->tid);
+            printk(" %d", tmptsk->tid);
         }
         printk("\n");
     }
 }
 
-static void insertTid(int gid, int tid)
+static void insertTask(int gid, int tid)
 {
     struct groupnode *tmpgrp;
     struct tsknode *tmptsk;
-    int flag = 0;
-    list_for_each_entry(tmpgrp, &groups.list, list) {
-        if(tmpgrp->gid == gid) {
-            flag = 1;
-            break;
+
+    tmpgrp = getGroup(gid);
+
+    if(!tmpgrp)
+        return;
+
+    list_for_each_entry(tmptsk, &(tmpgrp->tsks.list), list) {
+        if(tmptsk->tid == tid) {
+            return;
         }
     }
-    if(!flag) {
-        tmpgrp = insertGroup(gid);
-    }
 
-    tmptsk = (struct tsknode *)kmalloc(sizeof(struct groupnode),GFP_KERNEL);
+    tmptsk = (struct tsknode *)kmalloc(sizeof(struct tsknode),GFP_KERNEL);
     tmptsk->tid = tid;
     list_add_tail(&(tmptsk->list), &(tmpgrp->tsks.list));
 }
@@ -76,6 +112,7 @@ static void insertTid(int gid, int tid)
 static int gid;
 static int tid;
 static int run;
+static int nproc;
 
 static ssize_t gid_show(struct kobject *kobj, struct kobj_attribute *attr,
                         char *buf)
@@ -98,13 +135,13 @@ static ssize_t tid_store(struct kobject *kobj, struct kobj_attribute *attr,
                          const char *buf, size_t count)
 {
         sscanf(buf, "%du", &tid);
+        insertTask(gid, tid);
         return count;
 }
 
 static ssize_t run_show(struct kobject *kobj, struct kobj_attribute *attr,
                         char *buf)
 {
-        insertTid(gid, tid);
         printGroups();
         return sprintf(buf, "%d\n", run);
 }
@@ -112,6 +149,25 @@ static ssize_t run_store(struct kobject *kobj, struct kobj_attribute *attr,
                          const char *buf, size_t count)
 {
         sscanf(buf, "%du", &run);
+        if(run == 0) {
+            createGroup(gid, nproc);
+        } else if(run == 1) {
+        } else if(run == 2) {
+            freeGroup(gid);
+        } else if(run == 3) {
+            printGroups();
+        }
+        return count;
+}
+static ssize_t nproc_show(struct kobject *kobj, struct kobj_attribute *attr,
+                        char *buf)
+{
+        return sprintf(buf, "%d\n", nproc);
+}
+static ssize_t nproc_store(struct kobject *kobj, struct kobj_attribute *attr,
+                         const char *buf, size_t count)
+{
+        sscanf(buf, "%du", &nproc);
         return count;
 }
 /* Sysfs attributes cannot be world-writable. */
@@ -121,11 +177,14 @@ static struct kobj_attribute tid_attribute =
         __ATTR(tid, 0664, tid_show, tid_store);
 static struct kobj_attribute run_attribute =
         __ATTR(run, 0664, run_show, run_store);
+static struct kobj_attribute nproc_attribute =
+        __ATTR(nproc, 0664, nproc_show, nproc_store);
 
 static struct attribute *attrs[] = {
         &gid_attribute.attr,
         &tid_attribute.attr,
         &run_attribute.attr,
+        &nproc_attribute.attr,
         NULL,   /* need to NULL terminate the list of attributes */
 };
 

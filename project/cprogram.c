@@ -12,7 +12,8 @@ int main(int argc, char *argv[])
         opn = atoi(argv[1]);
         arg = atoi(argv[2]);
     }
+    printf("%d", getpid());
     temp = pbarrier(opn, arg);
-    printf("%d\n", temp);
+    //printf("%d\n", temp);
     return 0;
 }
