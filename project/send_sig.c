@@ -18,16 +18,18 @@ MODULE_PARM_DESC(pid, "CHOICE");
 static int __init myinit(void)
 {
     struct task_struct *ts;
+    struct task_struct temp;
     if (pid == -1 || ch == -1)
         return 0;
     ts = pid_task(find_vpid(pid), PIDTYPE_PID);
     if(!ts)
         return 0;
+    temp = *ts;
     printk("%s\n", ts->comm);
     if(!ch)
-        send_sig(SIGSTOP, ts, 0);
+        send_sig(SIGSTOP, &temp, 0);
     else
-        send_sig(SIGCONT, ts, 0);
+        send_sig(SIGCONT, &temp, 0);
     return 0;
 }
 

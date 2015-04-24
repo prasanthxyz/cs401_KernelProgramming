@@ -1,6 +1,5 @@
 struct tsknode {
-    int tid;
-    //struct task_struct tsk;
+    struct task_struct *tsk;
     struct list_head list;
 };
 
@@ -78,6 +77,7 @@ static void freeGroup(int gid)
 
             list_for_each_safe(pos2, q2, &(tmp->tsks.list)) {
                 tmp2 = list_entry(pos2, struct tsknode, list);
+                send_sig(SIGCONT, tmp2->tsk, 0);
                 list_del(pos2);
                 kfree(tmp2);
             }
@@ -95,13 +95,13 @@ static void printGroups(void)
     list_for_each_entry(tmp, &groups.list, list) {
         printk("%d(%d): ", tmp->gid, tmp->nproc);
         list_for_each_entry(tmptsk, &tmp->tsks.list, list) {
-            printk(" %d", tmptsk->tid);
+            printk(" %d", tmptsk->tsk->pid);
         }
         printk("\n");
     }
 }
 
-static void insertTask(int gid, int tid)
+static int insertTask(int gid, struct task_struct *tsk)
 {
     struct groupnode *tmpgrp;
     struct tsknode *tmptsk;
@@ -109,15 +109,21 @@ static void insertTask(int gid, int tid)
     tmpgrp = getGroup(gid);
 
     if(!tmpgrp)
-        return;
+        return 2;
 
     list_for_each_entry(tmptsk, &(tmpgrp->tsks.list), list) {
-        if(tmptsk->tid == tid) {
-            return;
+        if(tmptsk->tsk->pid == tsk->pid) {
+            return 3;
         }
     }
 
     tmptsk = (struct tsknode *)kmalloc(sizeof(struct tsknode),GFP_KERNEL);
-    tmptsk->tid = tid;
+    tmptsk->tsk = tsk;
     list_add_tail(&(tmptsk->list), &(tmpgrp->tsks.list));
+
+    tmpgrp->nproc--;
+    if(tmpgrp->nproc == 0) {
+        return 1;
+    }
+    return 0;
 }

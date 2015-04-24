@@ -4,16 +4,17 @@
 
 int main(int argc, char *argv[])
 {
-    int opn, arg, temp;
-    if(argc != 3) {
-        printf("Enter operation and argument\n");
-        scanf(" %d %d", &opn, &arg);
+    int opn, arg1, arg2, temp;
+    if(argc != 4) {
+        printf("Enter operation and arguments\n");
+        scanf(" %d %d %d", &opn, &arg1, &arg2);
     } else {
         opn = atoi(argv[1]);
-        arg = atoi(argv[2]);
+        arg1 = atoi(argv[2]);
+        arg2 = atoi(argv[3]);
     }
     printf("%d", getpid());
-    temp = pbarrier(opn, arg);
+    temp = pbarrier(opn, arg1, arg2);
     //printf("%d\n", temp);
     return 0;
 }
