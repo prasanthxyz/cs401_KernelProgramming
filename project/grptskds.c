@@ -15,6 +15,12 @@ static void initialize_Lists(void)
     INIT_LIST_HEAD(&groups.list);
 }
 
+/*
+ * freeLists()
+ * frees all the tasks in every group
+ * frees all the groups
+ */
+
 static void freeLists(void)
 {
     struct list_head *pos, *q;
@@ -36,6 +42,16 @@ static void freeLists(void)
     }
 }
 
+
+/*
+ * getGroup ( gid )
+ *   traverses the groups linked list
+ *   returns the group with given gid
+ *   return values:
+ *     node-address: SUCCESS
+ *     NULL        : node-not-found
+ */
+
 static struct groupnode *getGroup(int gid)
 {
     struct groupnode *tmp;
@@ -48,11 +64,20 @@ static struct groupnode *getGroup(int gid)
     return NULL;
 }
 
+/*
+ * createGroup ( gid, nproc )
+ *   creates a new group node
+ *   initializes it with given gid and nproc
+ *   return values:
+ *     node_address: SUCCESS
+ *     NULL        : group already present
+ */
+
 static struct groupnode *createGroup(int gid, int nproc)
 {
     struct groupnode *tmp;
 
-    if(getGroup(gid))
+    if((gid <= 0) || (nproc <= 0) || getGroup(gid))
         return NULL;
 
     tmp = (struct groupnode *)kmalloc(sizeof(struct groupnode),GFP_KERNEL);
@@ -64,7 +89,16 @@ static struct groupnode *createGroup(int gid, int nproc)
     return tmp;
 }
 
-static void freeGroup(int gid)
+/*
+ * freeGroup ( gid )
+ *   clears the group with given gid
+ *   sends SIGCONT to all the tasks in the group
+ *   return values:
+ *     0: SUCCESS
+ *     1: GROUP_NOT_FOUND
+ */
+
+static int freeGroup(int gid)
 {
     struct list_head *pos, *q;
     struct groupnode *tmp;
@@ -77,37 +111,107 @@ static void freeGroup(int gid)
 
             list_for_each_safe(pos2, q2, &(tmp->tsks.list)) {
                 tmp2 = list_entry(pos2, struct tsknode, list);
-                send_sig(SIGCONT, tmp2->tsk, 0);
+                if(tmp2)
+                    send_sig(SIGCONT, tmp2->tsk, 0);
                 list_del(pos2);
                 kfree(tmp2);
             }
             list_del(pos);
             kfree(tmp);
-            break;
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/*
+ * printGroups(gid, buf)
+ *   puts stats of group with given gid into buf
+ *   if gid == -1, puts all groups' stats.
+ *   (prints tasks in groups)
+ */
+
+static void printGroups(int gid, char *buf)
+{
+    struct groupnode *tmp;
+    struct tsknode *tmptsk;
+
+    int blocked;
+
+    char temp[128], tidtmp[20], tmpbuf[256];
+    strcpy(temp, "");
+    strcpy(tidtmp, "");
+
+    if(gid != -1) {
+        tmp = getGroup(gid);
+        if(!tmp) {
+            strcpy(buf, "Group ID not found");
+            return;
+        }
+
+        blocked = 0;
+        list_for_each_entry(tmptsk, &tmp->tsks.list, list) {
+            sprintf(tidtmp, "%d ", tmptsk->tsk->pid);
+            strcat(temp, tidtmp);
+            blocked++;
+        }
+
+        snprintf(buf, 1024, "\n\
+                Group ID            : %d\n\
+                Total no. of procs  : %d\n\
+                No. of blocked procs: %d\n\
+                PIDs                : %s\n",
+                gid,
+                blocked + tmp->nproc,
+                blocked,
+                temp);
+
+    } else {
+        strcpy(buf, "");
+        list_for_each_entry(tmp, &groups.list, list) {
+            strcpy(temp, "");
+            strcpy(tidtmp, "");
+            blocked = 0;
+            list_for_each_entry(tmptsk, &tmp->tsks.list, list) {
+                sprintf(tidtmp, "%d ", tmptsk->tsk->pid);
+                strcat(temp, tidtmp);
+                blocked++;
+            }
+
+            snprintf(tmpbuf, sizeof(tmpbuf),"\n\
+                    Group ID            : %d\n\
+                    Total no. of procs  : %d\n\
+                    No. of blocked procs: %d\n\
+                    PIDs                : %s\n",
+                    tmp->gid,
+                    blocked + tmp->nproc,
+                    blocked,
+                    temp);
+            strcat(buf, tmpbuf);
         }
     }
 }
 
-static void printGroups(void)
-{
-    struct groupnode *tmp;
-    struct tsknode *tmptsk;
-    list_for_each_entry(tmp, &groups.list, list) {
-        printk("%d(%d): ", tmp->gid, tmp->nproc);
-        list_for_each_entry(tmptsk, &tmp->tsks.list, list) {
-            printk(" %d", tmptsk->tsk->pid);
-        }
-        printk("\n");
-    }
-}
+/*
+ * insertTask ( gid, tsk )
+ *   inserts the task struct 'tsk' into the group-node with id 'gid'
+ *   Return values
+ *     0: SUCCESS             
+ *     1: COUNTER_REACHED_ZERO
+ *     2: GROUP_ID_NOT_FOUND  
+ *     3: TASK_ALREADY_PRESENT
+ *     4: INVALID_GID
+ */
 
 static int insertTask(int gid, struct task_struct *tsk)
 {
     struct groupnode *tmpgrp;
     struct tsknode *tmptsk;
 
-    tmpgrp = getGroup(gid);
+    if (gid <= 0)
+        return 4;
 
+    tmpgrp = getGroup(gid);
     if(!tmpgrp)
         return 2;
 
@@ -122,7 +226,7 @@ static int insertTask(int gid, struct task_struct *tsk)
     list_add_tail(&(tmptsk->list), &(tmpgrp->tsks.list));
 
     tmpgrp->nproc--;
-    if(tmpgrp->nproc == 0) {
+    if(tmpgrp->nproc <= 0) {
         return 1;
     }
     return 0;
