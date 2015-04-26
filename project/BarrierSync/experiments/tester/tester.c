@@ -16,6 +16,7 @@ int main(int argc, char* argv[])
         initGroup(gid, nproc);
     }
 
+    printf("My PID is: %d\n", getpid());
     printf("Going to print from 0 to 9, calling block after 4\n");
     for(i = 0; i < 10; i++)
     {

@@ -1,0 +1,11 @@
+INSTRUCTIONS TO APPLY PATCH:
+
+	 Copy the 'patchfile' to the PARENT directory of linux 3.18.1 source
+	 Right now, you should have  "linux-3.18.1"  folder and  "patchfile"  in the current folder.
+
+     execute the following:
+=====================================
+     cd linux-3.18.1
+     patch -p1 < ../patchfile
+=====================================
+

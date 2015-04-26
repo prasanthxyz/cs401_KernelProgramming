@@ -1,0 +1,203 @@
+\documentclass[10px]{article}
+\title{Experiment: Barrier Synchronization}
+\date{}
+\begin{document}
+\maketitle
+Use the tester program to do the following
+\begin{enumerate}
+\item Create a new barrier group with gid 1 and number of processes 3.\\
+\texttt{./tester 1 3}
+\begin{verbatim}
+My PID is: 7232
+Going to print from 0 to 9, calling block after 4
+0
+1
+2
+3
+4
+Calling block
+\end{verbatim}
+\item See the current stats using the sysfs interface:\\
+\texttt{cat /sys/barrier/stats}
+\begin{verbatim}
+                    Group ID            : 1
+                    Total no. of procs  : 3
+                    No. of blocked procs: 1
+                    PIDs                : 7232 
+\end{verbatim}
+\item Create a new barrier group with gid 2 and number of processes 2.\\
+\texttt{./tester 2 2}
+\begin{verbatim}
+My PID is: 7262
+Going to print from 0 to 9, calling block after 4
+0
+1
+2
+3
+4
+\end{verbatim}
+\item See the current stats using the sysfs interface:\\
+\texttt{cat /sys/barrier/stats}
+\begin{verbatim}
+                    Group ID            : 1
+                    Total no. of procs  : 3
+                    No. of blocked procs: 1
+                    PIDs                : 7232 
+
+                    Group ID            : 2
+                    Total no. of procs  : 2
+                    No. of blocked procs: 1
+                    PIDs                : 7262 
+\end{verbatim}
+\item Create a new barrier group with gid 3 and number of processes 2.\\
+\texttt{./tester 3 2}
+\begin{verbatim}
+My PID is: 7374
+Going to print from 0 to 9, calling block after 4
+0
+1
+2
+3
+4
+\end{verbatim}
+\item See the current stats using the sysfs interface:\\
+\texttt{cat /sys/barrier/stats}
+\begin{verbatim}
+                    Group ID            : 1
+                    Total no. of procs  : 3
+                    No. of blocked procs: 1
+                    PIDs                : 7232 
+
+                    Group ID            : 2
+                    Total no. of procs  : 2
+                    No. of blocked procs: 1
+                    PIDs                : 7262 
+
+                    Group ID            : 3
+                    Total no. of procs  : 2
+                    No. of blocked procs: 1
+                    PIDs                : 7374 
+\end{verbatim}
+\item Add a process instance to the group with gid 1\\
+\texttt{./tester 1}
+\begin{verbatim}
+My PID is: 7405
+Going to print from 0 to 9, calling block after 4
+0
+1
+2
+3
+4
+Calling block
+\end{verbatim}
+\item See the current stats using the sysfs interface:\\
+\texttt{cat /sys/barrier/stats}
+\begin{verbatim}
+                    Group ID            : 1
+                    Total no. of procs  : 3
+                    No. of blocked procs: 2
+                    PIDs                : 7232 7405 
+
+                    Group ID            : 2
+                    Total no. of procs  : 2
+                    No. of blocked procs: 1
+                    PIDs                : 7262 
+
+                    Group ID            : 3
+                    Total no. of procs  : 2
+                    No. of blocked procs: 1
+                    PIDs                : 7374 
+\end{verbatim}
+\item Add a process instance to the group with gid 2\\
+\texttt{./tester 2}
+\begin{verbatim}
+<<<<<<<<<<OUTPUT FROM INSTANCE 1 of GROUP 2>>>>>>>>>>
+Out of block
+5
+6
+7
+8
+9
+<<<<<<<<<<OUTPUT FROM INSTANCE 2 of GROUP 2 (current process)>>>>>>>>>>
+My PID is: 7438
+Going to print from 0 to 9, calling block after 4
+0
+1
+2
+3
+4
+Calling block
+Out of block
+5
+6
+7
+8
+9
+\end{verbatim}
+\item See the current stats using the sysfs interface:\\
+\texttt{cat /sys/barrier/stats}
+\begin{verbatim}
+                    Group ID            : 1
+                    Total no. of procs  : 3
+                    No. of blocked procs: 2
+                    PIDs                : 7232 7405 
+
+                    Group ID            : 3
+                    Total no. of procs  : 2
+                    No. of blocked procs: 1
+                    PIDs                : 7374 
+\end{verbatim}
+\item See the stats of GROUP 1 using the sysfs interface:
+\begin{verbatim}
+echo "1" > /sys/barrier/gid
+cat /sys/barrier/stats
+echo "-1" > /sys/barrier/gid
+
+                    Group ID            : 1
+                    Total no. of procs  : 3
+                    No. of blocked procs: 2
+                    PIDs                : 7232 7405 
+\end{verbatim}
+\item Add a process instance to the group with gid 1\\
+\texttt{./tester 1}
+\begin{verbatim}
+<<<<<<<<<<OUTPUT FROM INSTANCE 1 of GROUP 1>>>>>>>>>>
+Out of block
+5
+6
+7
+8
+9
+<<<<<<<<<<OUTPUT FROM INSTANCE 2 of GROUP 1>>>>>>>>>>
+Out of block
+5
+6
+7
+8
+9
+<<<<<<<<<<OUTPUT FROM INSTANCE 3 of GROUP 1 (current process)>>>>>>>>>>
+My PID is: 7683
+Going to print from 0 to 9, calling block after 4
+0
+1
+2
+3
+4
+Calling block
+Out of block
+5
+6
+7
+8
+9
+\end{verbatim}
+\item See the current stats using the sysfs interface:\\
+\texttt{cat /sys/barrier/stats}
+\begin{verbatim}
+                    Group ID            : 3
+                    Total no. of procs  : 2
+                    No. of blocked procs: 1
+                    PIDs                : 7374
+\end{verbatim}
+\end{enumerate}
+\end{document}

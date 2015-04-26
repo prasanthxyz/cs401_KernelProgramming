@@ -1,0 +1,46 @@
+\documentclass[12px]{report}
+\title{Barrier Synchronization Project Report\\ Kernel Programming - CS401}
+\author{Prasanth P\\143050059}
+\date{}
+\renewcommand\thesection{\arabic{section}}
+
+\begin{document}
+\maketitle
+
+\section{Problem Scope and Objectives} % complete
+The objective of the project is to create a Barrier Synchronization mechanism in Linux Kernel. 
+
+There should be an initialization system call \texttt{initBarrier(gid, nproc)} by which a \textbf{barrier group} with id `gid' is initialized with \textbf{the number of processes} `nproc'. That is, \textbf{nproc} number of processes are supposed to block at the barrier \textbf{gid}. 
+
+There should also be a \texttt{block(gid)} system call which when called, the caller will block on the barrier with id `gid'. When all the `nproc' processes reach the barrier (calls \texttt{block()}), all those processes are unblocked and allowed to continue together.
+
+
+\section{Methodology and Approach} % complete
+To implement the barrier synchronization mechanism, a new system call is added to the kernel. The system call takes 3 arguments --- opcode, arg1, and arg2. It passes these arguments and the \texttt{current} task\_struct pointer into a hook function.
+
+When a program calls the \texttt{initBarrier(gid, nproc)} function, it is translated to the system call by a header file. The hook function tries to create a group with given group id (gid) and number of processes (nproc) and adds it to a linked list of group elements.
+
+When block(gid) function is called by a process, the header file translates it into the system call which then blocks the process by sending SIGSTOP to it and adds it to the tasks-list of the group element with the given gid. It also decrements the nproc of the group. If nproc is 0 now (this was the last process of the group), all the processes in the group are unblocked.
+
+\input{components} % complete
+
+\section{Evaluation}
+A c-program \texttt{tester} was created which takes command line args. The program prints from 0 to 9. After printing 4, the program blocks on the barrier \texttt{gid} by calling \texttt{block(gid)}. Only after the barrier block is unlocked, the remaining numbers are printed.\\
+Usage:
+\begin{verbatim}
+./tester <gid> <nproc>
+\end{verbatim}
+This will initialize a new process with the given gid and nproc by calling \texttt{initBarrier(gid, nproc)}.
+Then, the process prints from 0 to 4 and then call \texttt{block(gid)}.
+\begin{verbatim}
+./tester <gid>
+\end{verbatim}
+The program prints from 0 to 4 and call \texttt{block(gid)} to block on the barrier.\\
+
+In order to test the barrier synchronization, the program can be started with a nproc of 5. 5 instances of the program are executed with the \textbf{same gid}. Just when the 5th program reaches \texttt{block(gid)} system call, all of them should unblock and print from 5 to 9.
+
+The state of the groups can be checked from the sysfs interface \texttt{/sys/barrier/stats}
+
+\section{Conclusions}
+The system call and the kernel module hook worked successfully. The evaluation by using the tester program gave expected results. The sysfs interface provided accurate (expected) stats while testing. The barrier synchronization worked correctly.
+\end{document}

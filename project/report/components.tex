@@ -1,0 +1,59 @@
+\section{Components}
+\subsection{System Call: sys\_pbarrier} % complete
+The system call takes 3 arguments\\
+1. operation\\
+2. arg1\\
+3. arg2\\\\
+It then obtains the task\_struct pointer of the calling process using macro `current'. A hook function is called and this task\_struct pointer along with the 3 arguments given above are passed into it.
+
+\subsection{LKM: barrier\_sys.c} % complete
+The loadable kernel module implements the hook function \texttt{pbarrier}. It also initializes a linked list of barrier groups and a sysfs interface for providing current stats. The parts of the lkm are given below.
+\subsubsection{Linked List}
+A linked list of barrier groups is implemented in `\texttt{grptskds.c}'. A barrier-element in the linked list has 3 members\\
+1. gid\ \ \ \ : Group ID\\
+2. nproc: No. of processes for the barrier group\\
+3. tsks\ \ \ : A linked list of \textbf{task\_struct pointers} --- tasks blocked on the barrier\\
+
+Various functionalities possible in the linked list are:
+\begin{enumerate}
+\item \texttt{createGroup(gid, nproc)}: creates a new group with given gid and nproc, and adds it to the list. It then returns the address of that group element. Returns NULL if that gid is already taken.
+\item \texttt{getGroup(gid)}: returns the linked list element (group) with the given gid. Returns NULL if not found.
+\item \texttt{insertTask(gid, tsk)}: inserts the task\_struct `tsk' into the group-node with id `gid'. As the task is inserted, the counter `nproc' is decremented. Returns the following values\\
+\begin{enumerate}
+	\item 0: task inserted and nproc decremented successfully.\\
+	\item 1: nproc reached zero, denoting it was the last process for the group. All processes in the group must be freed.\\
+	\item 2: group id not present.\\
+	\item 3: task already present in the group.\\
+	\item 4: invalid (negative) gid.\\
+\end{enumerate}
+\item \texttt{printGroups(gid, buf)}: if gid is -1, state of all groups is entered into the buffer `buf'. Otherwise, state of that group with given gid is copied into `buf'.
+\item \texttt{freeGroup(gid)}: Every process blocked in the barrier group `gid' is allowed to continue and the `tsks' list is freed. The group element in the linked list is also freed. The given gid is free to be used again.
+\item \texttt{freeLists()}: All the groups' task\_struct list tsks is freed, and the linked list of group-elements are also safely freed.
+\end{enumerate}
+
+\subsubsection{pbarrier function}
+The function takes 4 arguments: the \texttt{task\_struct} of the process to be blocked, an \texttt{operation code}, and two arguments \texttt{arg1} and \texttt{arg2}. A spin lock is used for mutual exclusion. An appropriate action is taken according to the operation code. \\
+If the operation code is 0 (BARRIER\_INIT): \\
+arg1 is considered as gid and arg2 as nproc. \texttt{createGroup(arg1,arg2)} is called and a new group is created with given gid and nproc.\\
+If the operation code is 1 (BARRIER\_BLOCK):\\
+arg1 is taken as gid and arg2 is ignored. \texttt{insertTask(task, arg1)} is called and the task is added to the task-list of group with given `gid'. If the function returns 0, the process is blocked by sending \textbf{SIGSTOP} . If the function returns 1, all the tasks blocked in that gid is unblocked and the lists freed by calling \texttt{freeGroup(arg1)}.
+
+\subsubsection{sysfs interface}
+Two sysfs files have been created in \texttt{/sys/barrier/}: \texttt{gid} and \texttt{stats}. gid is initialized to -1.\\
+Inorder to obtain stats of all the existing groups, set gid to -1 (by writing into \texttt{gid} file) and read \texttt{stats} file.
+\begin{verbatim}
+echo "-1" > /sys/barrier/gid
+cat /sys/barrier/stats
+\end{verbatim}
+To obtain stats of group with id `gid', write that into \texttt{gid} file and read the \texttt{stats} file.
+\begin{verbatim}
+echo {gid} > /sys/barrier/gid
+cat /sys/barrier/stats
+\end{verbatim}
+
+\subsection{The Header File: pbarrier.h} % complete
+A header file \textbf{pbarrier.h} was created which has wrapper functions \texttt{initGroup(gid, nproc)} and \texttt{block(gid)}, which internally calls the system call `\texttt{pbarrier}'.
+\subsubsection{initGroup(gid, nproc)}
+Initiates a new barrier group with group-id \texttt{gid} and number of processes \texttt{nproc}. A call with an existing group id will be neglected. When all the `nproc' processes in the group reaches and blocks at the barrier, the processes will be allowed to continue, the group will be cleared, and the group id `gid' will be free for a new group.
+\subsubsection{block(gid)}
+Blocks the caller process at the barrier of group `gid'. If it was the last process out of the `nproc' processes of that barrier, all the processes blocked at `gid' barrier group will be released and they continue execution.
